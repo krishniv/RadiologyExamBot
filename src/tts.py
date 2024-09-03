@@ -10,9 +10,9 @@ copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 import io
 import tempfile
 
-from modal import Image, method
+from modal import Image, method,enter
 
-from .common import stub
+from .common import app
 
 
 def download_models():
@@ -38,14 +38,15 @@ tortoise_image = (
 )
 
 
-@stub.cls(
+@app.cls(
     image=tortoise_image,
     gpu="A10G",
     container_idle_timeout=300,
     timeout=180,
 )
 class Tortoise:
-    def __enter__(self):
+    @enter()
+    def runoneneter(self):
         """
         Load the model weights into GPU memory when the container starts.
         """

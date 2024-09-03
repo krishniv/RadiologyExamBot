@@ -1,118 +1,118 @@
-"""
-Main web application service. Serves the static frontend as well as
-API routes for transcription, language model generation and text-to-speech.
+# ---
+# args: ["--message", "what's up?"]
+# ---
+"""Single-page application that lets you talk to a transformer chatbot.
+
+This is a complex example demonstrating an end-to-end web application backed by
+serverless web handlers and GPUs. The user visits a single-page application,
+written using Solid.js. This interface makes API requests that are handled by a
+Modal function running on the GPU.
+
+The weights of the model are saved in the image, so they don't need to be
+downloaded again while the app is running.
+
+Chat history tensors are saved in a `modal.Dict` distributed dictionary.
 """
 
-import json
+import uuid
 from pathlib import Path
+from typing import Optional, Tuple
 
-from modal import Mount, asgi_app
+import fastapi
+import modal
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
-from .common import stub
-from .llm_zephyr import Zephyr
-from .transcriber import Whisper
-from .tts import Tortoise
-
-static_path = Path(__file__).with_name("frontend").resolve()
-
-PUNCTUATION = [".", "?", "!", ":", ";", "*"]
-
-
-@stub.function(
-    mounts=[Mount.from_local_dir(static_path, remote_path="/assets")],
-    container_idle_timeout=300,
-    timeout=600,
+assets_path = Path(__file__).parent / "frontend"
+app = modal.App("medical-chatbot-spa")
+chat_histories = modal.Dict.from_name(
+    "example-chatbot-spa-history", create_if_missing=True
 )
-@asgi_app()
-def web():
-    from fastapi import FastAPI, Request
-    from fastapi.responses import Response, StreamingResponse
-    from fastapi.staticfiles import StaticFiles
 
-    web_app = FastAPI()
-    transcriber = Whisper()
-    llm = Zephyr()
-    tts = Tortoise()
 
-    @web_app.post("/transcribe")
-    async def transcribe(request: Request):
-        bytes = await request.body()
-        result = transcriber.transcribe_segment.remote(bytes)
-        return result["text"]
+def load_tokenizer_and_model():
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    @web_app.post("/generate")
-    async def generate(request: Request):
-        body = await request.json()
-        tts_enabled = body["tts"]
+    tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-large")
+    model = AutoModelForCausalLM.from_pretrained(
+        "microsoft/DialoGPT-large",
+        device_map="auto",
+    )
+    return tokenizer, model
 
-        if "noop" in body:
-            llm.generate.spawn("")
-            # Warm up 3 containers for now.
-            if tts_enabled:
-                for _ in range(3):
-                    tts.speak.spawn("")
-            return
 
-        def speak(sentence):
-            if tts_enabled:
-                fc = tts.speak.spawn(sentence)
-                return {
-                    "type": "audio",
-                    "value": fc.object_id,
-                }
-            else:
-                return {
-                    "type": "sentence",
-                    "value": sentence,
-                }
+gpu_image = (
+    modal.Image.debian_slim()
+    .pip_install("torch", find_links="https://download.pytorch.org/whl/cu116")
+    .pip_install("transformers~=4.31", "accelerate")
+    .run_function(load_tokenizer_and_model)
+)
 
-        def gen():
-            sentence = ""
 
-            for segment in llm.generate.remote_gen(body["input"], body["history"]):
-                yield {"type": "text", "value": segment}
-                sentence += segment
+with gpu_image.imports():
+    import torch
 
-                for p in PUNCTUATION:
-                    if p in sentence:
-                        prev_sentence, new_sentence = sentence.rsplit(p, 1)
-                        yield speak(prev_sentence)
-                        sentence = new_sentence
+    tokenizer, model = load_tokenizer_and_model()
 
-            if sentence:
-                yield speak(sentence)
 
-        def gen_serialized():
-            for i in gen():
-                yield json.dumps(i) + "\x1e"
+@app.function(
+    mounts=[modal.Mount.from_local_dir(assets_path, remote_path="/assets")]
+)
+@modal.asgi_app()
+def transformer():
+    app = fastapi.FastAPI()
 
-        return StreamingResponse(
-            gen_serialized(),
-            media_type="text/event-stream",
-        )
+    @app.post("/chat")
+    def chat(body: dict = fastapi.Body(...)):
+        message = body["message"]
+        chat_id = body.get("id")
+        id, response = generate_response.remote(message, chat_id)
+        return JSONResponse({"id": id, "response": response})
 
-    @web_app.get("/audio/{call_id}")
-    async def get_audio(call_id: str):
-        from modal.functions import FunctionCall
+    app.mount("/", StaticFiles(directory="/assets", html=True))
+    return app
 
-        function_call = FunctionCall.from_id(call_id)
-        try:
-            result = function_call.get(timeout=30)
-        except TimeoutError:
-            return Response(status_code=202)
 
-        if result is None:
-            return Response(status_code=204)
+@app.function(gpu="any", image=gpu_image)
+def generate_response(
+    message: str, id: Optional[str] = None, max_history_length: int = 100
+) -> Tuple[str, str]:
+    # new_input_ids = tokenizer.encode(
+    #     message + tokenizer.eos_token, return_tensors="pt"
+    # ).to("cuda")
+    new_input_ids = tokenizer(message+tokenizer.eos_token , return_)
+    if id is not None and id in chat_histories:
+        # Retrieve the existing chat history
+        chat_history = chat_histories[id]
+        # Concatenate the new input with the previous chat history
+        bot_input_ids = torch.cat([chat_history, new_input_ids], dim=-1)
+    else:
+        # If no id or chat history exists, start a new one
+        id = str(uuid.uuid4())
+        bot_input_ids = new_input_ids
 
-        return StreamingResponse(result, media_type="audio/wav")
+    # Generate a response
+    chat_history = model.generate(
+        bot_input_ids,
+        max_length=1250,
+        pad_token_id=tokenizer.eos_token_id,
+        do_sample=True       )
 
-    @web_app.delete("/audio/{call_id}")
-    async def cancel_audio(call_id: str):
-        from modal.functions import FunctionCall
+    response = tokenizer.decode(
+        chat_history[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True
+    )
 
-        print("Cancelling", call_id)
-        function_call = FunctionCall.from_id(call_id)
-        function_call.cancel()
+    # Trim the chat history if it exceeds the max length
+    if chat_history.size(1) > max_history_length:
+        chat_history = chat_history[:, -max_history_length:]
 
-    web_app.mount("/", StaticFiles(directory="/assets", html=True))
-    return web_app
+    chat_histories[id] = chat_history
+
+    return id, response
+
+
+
+@app.local_entrypoint()
+def test_response(message: str):
+    _, response = generate_response.remote(message)
+    print(response)

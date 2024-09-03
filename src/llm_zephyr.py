@@ -9,7 +9,7 @@ from pathlib import Path
 
 from modal import Image, build, enter, method
 
-from .common import stub
+from .common import app
 
 MODEL_NAME = "TheBloke/zephyr-7B-beta-AWQ"
 
@@ -29,7 +29,7 @@ with zephyr_image.imports():
     from awq import AutoAWQForCausalLM
 
 
-@stub.cls(image=zephyr_image, gpu="T4", container_idle_timeout=300)
+@app.cls(image=zephyr_image, gpu="T4", container_idle_timeout=300)
 class Zephyr:
     @build()
     def download_model(self):
@@ -89,7 +89,7 @@ class Zephyr:
 
 
 # For local testing, run `modal run -q src.llm_zephyr --input "Where is the best sushi in New York?"`
-@stub.local_entrypoint()
+@app.local_entrypoint()
 def main(input: str):
     model = Zephyr()
     for val in model.generate.remote_gen(input):
