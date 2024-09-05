@@ -1,18 +1,7 @@
 # ---
 # args: ["--message", "what's up?"]
 # ---
-"""Single-page application that lets you talk to a transformer chatbot.
 
-This is a complex example demonstrating an end-to-end web application backed by
-serverless web handlers and GPUs. The user visits a single-page application,
-written using Solid.js. This interface makes API requests that are handled by a
-Modal function running on the GPU.
-
-The weights of the model are saved in the image, so they don't need to be
-downloaded again while the app is running.
-
-Chat history tensors are saved in a `modal.Dict` distributed dictionary.
-"""
 
 import uuid
 from pathlib import Path
@@ -23,7 +12,7 @@ import modal
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-assets_path = Path(__file__).parent / "frontend"
+assets_path = Path(__file__).parent / "frontend"/"build"
 app = modal.App("medical-chatbot-spa")
 chat_histories = modal.Dict.from_name(
     "example-chatbot-spa-history", create_if_missing=True
@@ -77,10 +66,9 @@ def transformer():
 def generate_response(
     message: str, id: Optional[str] = None, max_history_length: int = 100
 ) -> Tuple[str, str]:
-    # new_input_ids = tokenizer.encode(
-    #     message + tokenizer.eos_token, return_tensors="pt"
-    # ).to("cuda")
-    new_input_ids = tokenizer(message+tokenizer.eos_token , return_)
+    new_input_ids = tokenizer.encode(
+        message + tokenizer.eos_token, return_tensors="pt"
+    ).to("cuda")
     if id is not None and id in chat_histories:
         # Retrieve the existing chat history
         chat_history = chat_histories[id]
