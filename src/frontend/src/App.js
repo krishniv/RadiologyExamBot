@@ -14,9 +14,11 @@ function App() {
 
   if (questions.length && questionIndex + 1 <= questions.length) {
     component = <Question />
-  } else if (!questions.length) {
+  } 
+  else if (!questions.length) {
     component = <Settings />
-  } else {
+  } 
+  else {
     component = <FinalScreen />
   }
 
