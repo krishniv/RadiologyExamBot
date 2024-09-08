@@ -5,17 +5,32 @@ from collections import defaultdict
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import hashlib
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+
+import string
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+
+# Ensure you have the necessary NLTK data
+
+
+
+
 # Paths
 images_folder = '/Users/krishnaniveditha/Desktop/LLMprojects/RadiologyQuizBot/src/images'
-descriptions_file = '/Users/krishnaniveditha/Desktop/LLMprojects/roco-dataset/data/validation/radiology/captions.txt'
+captions_file = '/Users/krishnaniveditha/Desktop/LLMprojects/roco-dataset/data/validation/radiology/captions.txt'
 output_json = './rad_quiz.json'
+descriptions_only = "/Users/krishnaniveditha/Desktop/LLMprojects/RadiologyExamBot/src/descriptions.txt"
 
 # Load descriptions and keywords
-def load_data(descriptions_file):
+def load_data(captions_file):
     descriptions = {}
     keywords = {}
 
-    with open(descriptions_file, 'r') as desc_file:
+    with open(captions_file, 'r') as desc_file:
         for line in desc_file:
             image, desc = line.strip().split('\t', 1)
             descriptions[image.strip()+ ".jpg"] = desc.strip()
@@ -66,10 +81,49 @@ def save_json(data, output_file):
     with open(output_file, 'w') as json_file:
         json.dump(data, json_file, indent=4)
 
+
+        
+def clean_text(text):
+    stemmer = PorterStemmer()
+    
+    # Remove punctuation
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    
+    # Tokenize the text
+    tokens = word_tokenize(text.lower())
+    
+    # Stem the tokens
+    stemmed_tokens = [stemmer.stem(token) for token in tokens]
+    
+    return ' '.join(stemmed_tokens)
+
+def hash_text(text):
+    # Hash the cleaned text to detect duplicates
+    return hashlib.md5(text.encode()).hexdigest()
+
+def read_description(captions_file, output_file):
+    unique_hashes = set()
+    unique_descriptions = {}
+
+    with open(captions_file, 'r') as desc_file:
+        for line in desc_file:
+            image, desc = line.strip().split('\t', 1)
+            
+            # Clean the description but keep original case for output
+            cleaned_desc = clean_text(desc)
+            text_hash = hash_text(cleaned_desc)
+            
+            # Check for uniqueness based on the hash
+            if text_hash not in unique_hashes:
+                unique_hashes.add(text_hash)
+                unique_descriptions[text_hash] = desc  # Store the original case description
+    
+    # Write unique descriptions to the output file
+    with open(output_file, 'w') as out_file:
+        for desc in unique_descriptions.values():
+            out_file.write(f'{desc}\n')
+
 # Run the process
 if __name__ == "__main__":
-    descriptions = load_data(descriptions_file)
-    quiz_data = create_quiz_mapping(images_folder, descriptions)
-    save_json(quiz_data, output_json)
-
-    print(f"Quiz JSON created successfully: {output_json}")
+    read_description(captions_file,descriptions_only)
+    

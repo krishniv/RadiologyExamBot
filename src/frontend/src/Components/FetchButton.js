@@ -31,26 +31,14 @@ function FetchButton(props) {
   }
 
   const handleQuery = async () => {
-    let apiUrl = `https://opentdb.com/api.php?amount=${questionAmount}`
-
-    if (questionCategory.length) {
-      apiUrl = apiUrl.concat(`&category=${questionCategory}`)
-    }
-
-    if (questionDifficulty.length) {
-      apiUrl = apiUrl.concat(`&difficulty=${questionDifficulty}`)
-    }
-
-    if (questionType.length) {
-      apiUrl = apiUrl.concat(`&type=${questionType}`)
-    }
+    let apiUrl = `http://localhost:8000/generate/${questionAmount}`
 
     setLoading(true)
 
     await fetch(apiUrl)
       .then((res) => res.json())
       .then((response) => {
-        setQuestions(response.results)
+        setQuestions(response.questions)
         setLoading(false)
       })
 
