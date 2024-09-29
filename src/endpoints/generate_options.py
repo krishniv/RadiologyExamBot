@@ -9,13 +9,7 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 import base64
-import openai
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-openai.api_key = os.getenv("API_KEY")
-
+from endpoints.modelcaption import generate_medical_description
 router = APIRouter()
 
 # Paths
@@ -32,27 +26,8 @@ tfidf_matrix = vectorizer.fit_transform(corpus)
 state = {}
 
 def get_image_description(image_path):
-    """Generate a description for the image using OpenAI."""
-    with open(image_path, "rb") as image_file:
-        image = Image.open(image_file)
-        buffered = BytesIO()
-        image.save(buffered, format="JPEG")
-        img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-
-    # prompt = f"Generate a concise medical description for the following image: \n\n (Insert description based on this: Axial computed tomography scan of the pelvis showing a diffuse infiltration of the bladder wall, catheter in situ)"
-
-    # response = openai.ChatCompletion.create(
-    #     model="gpt-3.5-turbo",  # Use the appropriate model
-    #     messages=[
-    #         {"role": "system", "content": "You are a helpful medical assistant."},
-    #         {"role": "user", "content": prompt}
-    #     ],
-    #     max_tokens=150,
-    #     temperature=0.5
-    # )
-
-    # description = response['choices'][0]['message']['content'].strip()
-    description = "Axial computed tomography scan of the pelvis showing a diffuse infiltration of the bladder wall, catheter in situ (arrow)."
+    description = generate_medical_description(image_path)
+    # description = "Axial computed tomography scan of the pelvis showing a diffuse infiltration of the bladder wall, catheter in situ (arrow)."
     return description
 
 
@@ -77,7 +52,7 @@ def get_similar_options(target_desc, corpus, tfidf_matrix, vectorizer):
     similar_descs = [corpus[i] for i in similar_indices if corpus[i] != target_desc]
     return similar_descs[:3]
 
-@router.get("/generate/{amount}")
+@router.get("/generate/{amount}") 
 async def generate_options(amount: int):
     """
     Generate a JSON mapping for quiz options for the requested amount of questions.

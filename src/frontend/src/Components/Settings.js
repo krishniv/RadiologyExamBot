@@ -18,7 +18,7 @@ function Settings() {
   if (!loading) {
     return (
       <div>
-        <h1>Quiz App</h1>
+        <h1>Radiology Quiz App</h1>
         <div>
           <h2>Amount of Questions:</h2>
           <input
