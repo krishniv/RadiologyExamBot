@@ -9,7 +9,10 @@ An interactive quiz which would aid Medical professional to understand medical p
 2. FastAPI server ([`src/app.py`](./src/app.py))
 
 
+## Run frontend
 
+yarn build
+yarn start
 
 ## Developing locally
 

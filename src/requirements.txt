@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-openai
-pydantic
-scikit-learn
-Pillow
-python-dotenv

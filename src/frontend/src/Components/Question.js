@@ -38,7 +38,7 @@ function Question() {
       });
     }
 
-    if (questionIndex + 1 < questions.length) {
+    if (questionIndex + 1 <= questions.length) {
       setTimeout(() => {
         setAnswerSelected(false);
         setSelectedAnswer(null);
