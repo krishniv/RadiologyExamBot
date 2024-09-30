@@ -71,7 +71,7 @@ function Question() {
     <div style={{ display: 'flex', flexDirection: 'row'}}>
   <div style={{ marginRight: '20px' }}>
     <img
-      src={question.image}
+      src={`/medical_images/${question.image}`}
       alt="Medical Scan"
       style={{ width: '800px', height: '300px', maxWidth: '100%',paddingTop:"100px",paddingRight:"60px"}}
     />

@@ -13,8 +13,8 @@ from endpoints.modelcaption import generate_medical_description
 router = APIRouter()
 
 # Paths
-images_folder = '/Users/krishnaniveditha/Desktop/LLMprojects/roco-dataset/data/validation/radiology/images'
-descriptions_txt = '/Users/krishnaniveditha/Desktop/LLMprojects/RadiologyExamBot/src/descriptions.txt'
+images_folder = './medical_images'
+descriptions_txt = './descriptions.txt'
 
 # Load corpus once
 with open(descriptions_txt, 'r') as file:
