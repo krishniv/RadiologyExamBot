@@ -36,8 +36,9 @@ function FinalScreen() {
     <div>
       <h3>Final Score: {score}</h3>
       <button onClick={replay}>Try again</button>
-      <FetchButton text="Fetch new questions" />
-      <button onClick={settings}>Back to settings</button>
+      <button onClick={settings}>Fetch new questions</button>
+
+    
     </div>
   )
 }

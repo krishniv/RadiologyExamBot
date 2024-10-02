@@ -11,12 +11,15 @@ function App() {
   const questionIndex = useSelector((state) => state.index)
 
   let component
+  console.log(questionIndex, questions.length)
 
-  if (questions.length && questionIndex + 1 <= questions.length) {
+  if (questions.length && questionIndex < questions.length) {
     component = <Question />
-  } else if (!questions.length) {
+  } 
+  else if (!questions.length) {
     component = <Settings />
-  } else {
+  } 
+  else{
     component = <FinalScreen />
   }
 
