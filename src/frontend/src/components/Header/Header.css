@@ -1,0 +1,59 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #1a1a2e; /* Match your app's theme */
+  border-bottom: 1px solid #363648;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-title {
+  color: #fff;
+  font-size: 1.8rem; /* Increased font size for better visibility */
+  font-weight: 600;
+  margin: 0;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.header-button {
+  padding: 0.5rem 1.25rem;
+  background: linear-gradient(135deg, #2a2a3a, #363648);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem; /* Consistent button size */
+}
+
+.header-button:hover {
+  background: linear-gradient(135deg, #363648, #444456);
+  transform: translateY(-1px);
+}
+
+.header-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .header-title {
+    font-size: 1.5rem;
+  }
+
+  .header-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+} 

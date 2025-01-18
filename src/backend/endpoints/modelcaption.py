@@ -5,32 +5,31 @@ from torchvision import transforms
 from io import BytesIO
 from torchvision.utils import make_grid
 
+# Global variables for model, tokenizer, and processor
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+ckpt_name = 'aehrc/medicap'
+
+# Initialize model components once
+encoder_decoder = transformers.AutoModel.from_pretrained(ckpt_name, trust_remote_code=True).to(device)
+encoder_decoder.eval()
+image_processor = transformers.AutoFeatureExtractor.from_pretrained(ckpt_name)
+tokenizer = transformers.PreTrainedTokenizerFast.from_pretrained(ckpt_name)
+
+# Define image transforms once
+test_transforms = transforms.Compose([
+    transforms.Resize(size=image_processor.size['shortest_edge']),
+    transforms.CenterCrop(size=[
+        image_processor.size['shortest_edge'],
+        image_processor.size['shortest_edge'],
+    ]),
+    transforms.ToTensor(),
+    transforms.Normalize(
+        mean=image_processor.image_mean,
+        std=image_processor.image_std,
+    ),
+])
+
 def generate_medical_description(image_path):
-    ckpt_name = 'aehrc/medicap'
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    # Load the model, tokenizer, and image processor
-    encoder_decoder = transformers.AutoModel.from_pretrained(ckpt_name, trust_remote_code=True).to(device)
-    encoder_decoder.eval()
-    image_processor = transformers.AutoFeatureExtractor.from_pretrained(ckpt_name)
-    tokenizer = transformers.PreTrainedTokenizerFast.from_pretrained(ckpt_name)
-
-    # Define image transforms
-    test_transforms = transforms.Compose(
-        [
-            transforms.Resize(size=image_processor.size['shortest_edge']),
-            transforms.CenterCrop(size=[
-                image_processor.size['shortest_edge'],
-                image_processor.size['shortest_edge'],
-            ]),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=image_processor.image_mean,
-                std=image_processor.image_std,
-            ),
-        ]
-    )
-
     # Load and process the image
     image = Image.open(image_path).convert('RGB')
     image = test_transforms(image)

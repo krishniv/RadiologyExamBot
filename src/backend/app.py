@@ -1,6 +1,7 @@
 from fastapi import FastAPI,Request
 from fastapi.middleware.cors import CORSMiddleware
-from endpoints.generate_options import router as generate_options_router
+from endpoints.routes import router as endpoint_router
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
@@ -14,8 +15,12 @@ app.add_middleware(
 )
 
 # Include the router from the generate_options module
-app.include_router(generate_options_router)
-
+app.include_router(endpoint_router)
+app.mount("/medical_images", StaticFiles(directory="medical_images"), name="medical_images")
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the FastAPI application"}
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
